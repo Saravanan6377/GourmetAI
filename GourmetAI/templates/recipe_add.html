@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center animated-fade-in">
+    <div class="col-lg-8 col-md-10">
+        <div class="glass-container p-4 p-md-5">
+            <div class="mb-4">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-glass btn-sm mb-3">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Recipes
+                </a>
+                <h2 class="mb-1"><i class="fa-solid fa-circle-plus text-primary me-2"></i>Add New Recipe</h2>
+                <p class="text-muted">Enter details below. Our Random Forest model will predict the quality rating, and the TF-IDF vectorizer will map its recommendation links.</p>
+            </div>
+            
+            <form action="{{ url_for('add_recipe') }}" method="POST">
+                <input type="hidden" id="is_calculated" name="is_calculated" value="false">
+                <div class="row g-3">
+                    <!-- Name & Category -->
+                    <div class="col-md-8">
+                        <label for="recipe_name" class="form-label text-muted small fw-semibold text-uppercase">Recipe Name</label>
+                        <input type="text" class="form-control form-control-glass" id="recipe_name" name="recipe_name" placeholder="e.g. Garlic Butter Shrimp Pasta" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category" class="form-label text-muted small fw-semibold text-uppercase">Category</label>
+                        <select class="form-select form-control-glass" id="category" name="category" required>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch" selected>Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Dessert">Dessert</option>
+                            <option value="Snacks">Snacks</option>
+                            <option value="Healthy">Healthy</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="col-12">
+                        <label for="description" class="form-label text-muted small fw-semibold text-uppercase">Description</label>
+                        <textarea class="form-control form-control-glass" id="description" name="description" rows="2" placeholder="Describe this dish..." required></textarea>
+                    </div>
+                    
+                    <!-- Ingredients -->
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="ingredients" class="form-label text-muted small fw-semibold text-uppercase mb-0">Ingredients (comma-separated)</label>
+                            <button type="button" id="autoCalcBtn" class="btn btn-outline-glass btn-sm" style="font-size: 0.75rem; padding: 2px 10px;">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1 text-primary"></i> Auto-Calculate Macros
+                            </button>
+                        </div>
+                        <textarea class="form-control form-control-glass" id="ingredients" name="ingredients" rows="3" placeholder="shrimp, garlic, butter, spaghetti, olive oil, lemon juice, parsley, salt, pepper" required></textarea>
+                        <div class="form-text text-muted small">Please separate ingredients with a comma. The system uses this list to calculate recommendations.</div>
+                    </div>
+                    
+                    <!-- Prep Time, Servings & Calories -->
+                    <div class="col-md-4">
+                        <label for="cooking_time" class="form-label text-muted small fw-semibold text-uppercase">Cooking Time (minutes)</label>
+                        <input type="number" class="form-control form-control-glass" id="cooking_time" name="cooking_time" min="1" placeholder="30" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="servings" class="form-label text-muted small fw-semibold text-uppercase">Servings</label>
+                        <input type="number" class="form-control form-control-glass" id="servings" name="servings" min="1" value="4" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="calories" class="form-label text-muted small fw-semibold text-uppercase">Calories (per serving)</label>
+                        <input type="number" step="any" class="form-control form-control-glass" id="calories" name="calories" min="0" placeholder="450" required>
+                    </div>
+                    
+                    <!-- Nutritional Breakdown -->
+                    <div class="col-12 mt-4">
+                        <h4 class="h6 text-uppercase text-muted fw-bold mb-3">Macronutrients (g, per serving)</h4>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="protein" class="form-label text-muted small">Protein</label>
+                                <input type="number" step="any" class="form-control form-control-glass" id="protein" name="protein" min="0" placeholder="25" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fat" class="form-label text-muted small">Fat</label>
+                                <input type="number" step="any" class="form-control form-control-glass" id="fat" name="fat" min="0" placeholder="15" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="carbohydrates" class="form-label text-muted small">Carbohydrates</label>
+                                <input type="number" step="any" class="form-control form-control-glass" id="carbohydrates" name="carbohydrates" min="0" placeholder="45" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <div class="col-12 mt-5">
+                        <button type="submit" class="btn btn-primary-gradient py-2 px-4 w-100">
+                            <i class="fa-solid fa-plus me-1"></i> Add Recipe to Engine
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let totalBatchMacros = {
+    calories: (parseFloat(document.getElementById('calories').value) || 0) * (parseFloat(document.getElementById('servings').value) || 1),
+    protein: (parseFloat(document.getElementById('protein').value) || 0) * (parseFloat(document.getElementById('servings').value) || 1),
+    fat: (parseFloat(document.getElementById('fat').value) || 0) * (parseFloat(document.getElementById('servings').value) || 1),
+    carbohydrates: (parseFloat(document.getElementById('carbohydrates').value) || 0) * (parseFloat(document.getElementById('servings').value) || 1)
+};
+
+function recalculatePerServing() {
+    const servings = parseFloat(document.getElementById('servings').value) || 1;
+    document.getElementById('calories').value = Math.round((totalBatchMacros.calories / servings) * 10) / 10 || '';
+    document.getElementById('protein').value = Math.round((totalBatchMacros.protein / servings) * 10) / 10 || '';
+    document.getElementById('fat').value = Math.round((totalBatchMacros.fat / servings) * 10) / 10 || '';
+    document.getElementById('carbohydrates').value = Math.round((totalBatchMacros.carbohydrates / servings) * 10) / 10 || '';
+}
+
+document.getElementById('servings')?.addEventListener('input', recalculatePerServing);
+
+// Track manual updates
+['calories', 'protein', 'fat', 'carbohydrates'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', function() {
+        const servings = parseFloat(document.getElementById('servings').value) || 1;
+        totalBatchMacros[id] = (parseFloat(this.value) || 0) * servings;
+    });
+});
+
+document.getElementById('autoCalcBtn')?.addEventListener('click', function() {
+    const btn = this;
+    const ingredients = document.getElementById('ingredients').value.trim();
+    
+    if (!ingredients) {
+        alert("Please enter some ingredients first.");
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Calculating...';
+    
+    fetch('/api/analyze-ingredients', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ingredients: ingredients })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data) {
+            totalBatchMacros = {
+                calories: data.calories,
+                protein: data.protein,
+                fat: data.fat,
+                carbohydrates: data.carbohydrates
+            };
+            recalculatePerServing();
+            const ic = document.getElementById('is_calculated');
+            if (ic) ic.value = 'true';
+            
+            // Highlight the updated inputs briefly
+            ['calories', 'protein', 'fat', 'carbohydrates'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.transition = 'background-color 0.3s ease';
+                el.style.backgroundColor = 'rgba(99, 102, 241, 0.2)'; // Primary color tint
+                setTimeout(() => {
+                    el.style.backgroundColor = '';
+                }, 1000);
+            });
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to calculate macros. Make sure some ingredients match dictionary words.");
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1 text-primary"></i> Auto-Calculate Macros';
+    });
+});
+</script>
+{% endblock %}

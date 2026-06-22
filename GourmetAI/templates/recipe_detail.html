@@ -1,0 +1,511 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row g-4 animated-fade-in">
+    <!-- Left Column: Recipe Info, Nutrition, Ingredients -->
+    <div class="col-lg-8">
+        <a href="{{ url_for('index', q=search_query, category=selected_category, page=page, cuisine=selected_cuisine, state_food=selected_state) }}#recipe-{{ recipe.recipe_id }}" class="btn btn-outline-glass btn-sm mb-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Recipes
+        </a>
+        <div class="glass-container p-4 p-md-5 mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <span class="category-tag">{{ recipe.category or 'Lunch' }}</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button id="favoriteBtn" data-recipe-id="{{ recipe.recipe_id }}" class="favorite-btn {% if is_favorite %}active{% endif %}" title="Save to Favorites">
+                        <i class="{% if is_favorite %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                    </button>
+                    {% if session.user_id %}
+                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.recipe_id) }}" class="btn btn-outline-glass btn-sm" title="Edit Recipe">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </a>
+                    <form action="{{ url_for('delete_recipe', recipe_id=recipe.recipe_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this recipe?');">
+                        <button type="submit" class="btn btn-outline-glass btn-sm text-danger border-danger border-opacity-25" title="Delete Recipe">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <h1 class="display-6 mb-3">{{ recipe.recipe_name }}</h1>
+            <p class="text-muted leading-relaxed mb-4">{{ recipe.description or 'A delicious homecooked dish made with love.' }}</p>
+            
+            <hr class="border-secondary border-opacity-10 my-4">
+            
+            <style>
+            .btn-glass-toggle {
+                background: rgba(255, 255, 255, 0.03);
+                color: rgba(255, 255, 255, 0.6);
+                border: none;
+                transition: all 0.2s ease;
+            }
+            .btn-glass-toggle:hover {
+                background: rgba(255, 255, 255, 0.08);
+                color: #fff;
+            }
+            .btn-glass-toggle.active {
+                background: var(--sys-primary-color, #3b82f6);
+                color: #fff;
+                font-weight: 600;
+            }
+            </style>
+            <!-- Nutrition Dashboard -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h3 class="h5 mb-0" id="nutr-header-label">Nutrition Information (per serving)</h3>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Nutrition Mode" style="border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+                    <button type="button" id="nutr-mode-serving" class="btn btn-glass-toggle btn-sm active" style="font-size: 0.7rem; padding: 4px 8px; border: none; border-radius: 0;">Per Serving</button>
+                    <button type="button" id="nutr-mode-total" class="btn btn-glass-toggle btn-sm" style="font-size: 0.7rem; padding: 4px 8px; border: none; border-radius: 0;">Total Recipe</button>
+                </div>
+            </div>
+            <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+                <div class="col">
+                    <div class="nutrition-card">
+                        <div class="nutrition-value text-danger" id="nutr-calories" data-base-val="{{ recipe.calories or 0 }}">{{ recipe.calories|int }}</div>
+                        <div class="nutrition-label">Calories</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="nutrition-card">
+                        <div class="nutrition-value text-primary" id="nutr-protein" data-base-val="{{ recipe.protein or 0 }}">{{ recipe.protein|int }}g</div>
+                        <div class="nutrition-label">Protein</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="nutrition-card">
+                        <div class="nutrition-value text-warning" id="nutr-fat" data-base-val="{{ recipe.fat or 0 }}">{{ recipe.fat|int }}g</div>
+                        <div class="nutrition-label">Fat</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="nutrition-card">
+                        <div class="nutrition-value text-success" id="nutr-carbs" data-base-val="{{ recipe.carbohydrates or 0 }}">{{ recipe.carbohydrates|int }}g</div>
+                        <div class="nutrition-label">Carbs</div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="border-secondary border-opacity-10 my-4">
+            
+            <!-- Ingredients -->
+            <div class="row">
+                <div class="col-md-7">
+                    <h3 class="h5 mb-3"><i class="fa-solid fa-carrot text-primary me-2"></i>Ingredients</h3>
+                    <ul class="list-group list-group-flush" style="--bs-list-group-bg: transparent; --bs-list-group-border-color: rgba(255,255,255,0.06);">
+                        {% for ingredient in ingredients_list %}
+                            <li class="list-group-item text-light py-2 ps-0 d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-success small"></i>
+                                <span class="ingredient-item-text">{{ ingredient|capitalize }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-5 mt-4 mt-md-0">
+                    <div class="glass-container p-3 p-md-4 h-100" style="background: rgba(255,255,255,0.015);">
+                        <h4 class="h6 text-uppercase text-muted fw-bold mb-3">Preparation Details</h4>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-regular fa-clock text-primary fs-5"></i>
+                                <div>
+                                    <div class="small text-muted">Cooking Time</div>
+                                    <div class="fw-semibold text-light">{{ recipe.cooking_time }} Minutes</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-kitchen-set text-primary fs-5"></i>
+                                <div>
+                                    <div class="small text-muted">Total Ingredients</div>
+                                    <div class="fw-semibold text-light">{{ ingredients_list|length }} Items</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="fa-solid fa-users text-primary fs-5"></i>
+                                <div>
+                                    <div class="small text-muted mb-1">Servings (Adjust to scale)</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" id="btn-dec-servings" class="btn btn-outline-glass btn-sm py-0 px-2 text-light" style="line-height: 1.2; font-weight: bold; border-color: rgba(255,255,255,0.15);">&minus;</button>
+                                        <span id="current-servings" class="fw-semibold text-light px-1" data-base-servings="{{ recipe.servings or 1 }}" style="min-width: 20px; text-align: center;">{{ recipe.servings or 1 }}</span>
+                                        <button type="button" id="btn-inc-servings" class="btn btn-outline-glass btn-sm py-0 px-2 text-light" style="line-height: 1.2; font-weight: bold; border-color: rgba(255,255,255,0.15);">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-tag text-primary fs-5"></i>
+                                <div>
+                                    <div class="small text-muted">Recipe ID</div>
+                                    <div class="fw-semibold text-light">#{{ recipe.recipe_id }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review & Sentiment Section -->
+        <div class="glass-container p-4 p-md-5 mb-4">
+            <h3 class="h4 mb-4"><i class="fa-regular fa-comments text-primary me-2"></i>Reviews & Sentiment Analysis</h3>
+            
+            {% if session.user_id %}
+            <!-- Add Review Form -->
+            <form action="{{ url_for('add_review', recipe_id=recipe.recipe_id) }}" method="POST" class="mb-5 p-3 p-md-4 glass-container" style="background: rgba(255,255,255,0.01);">
+                <h4 class="h5 mb-3 text-light">Write a Review</h4>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-semibold text-uppercase">Your Rating</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <select class="form-select form-control-glass w-auto" name="rating" required>
+                            <option value="5" selected>5 Stars - Excellent</option>
+                            <option value="4">4 Stars - Very Good</option>
+                            <option value="3">3 Stars - Average</option>
+                            <option value="2">2 Stars - Poor</option>
+                            <option value="1">1 Star - Terrible</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="review_text" class="form-label text-muted small fw-semibold text-uppercase">Your Comment (VADER analyzed)</label>
+                    <textarea class="form-control form-control-glass" id="review_text" name="review_text" rows="3" placeholder="Tell us how it tasted! Our NLP system will analyze your sentiment." required></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-gradient">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Submit Review
+                </button>
+            </form>
+            {% else %}
+            <div class="alert glass-container border-0 text-muted text-center py-4 mb-5" style="background: rgba(255,255,255,0.015);">
+                <p class="mb-2">Want to write a review? Please log in to share your thoughts.</p>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-glass btn-sm">Login here</a>
+            </div>
+            {% endif %}
+            
+            <!-- Reviews List -->
+            <div class="reviews-list">
+                {% for review in reviews %}
+                    <div class="review-item">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-light">{{ review.user_name }}</span>
+                                <span class="rating-stars text-warning small">
+                                    {% for _ in range(review.rating) %}
+                                        <i class="fa-solid fa-star"></i>
+                                    {% endfor %}
+                                    {% for _ in range(5 - review.rating) %}
+                                        <i class="fa-regular fa-star text-muted"></i>
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            
+                            <!-- VADER Sentiment Badge -->
+                            <div>
+                                {% if review.sentiment_label == 'Positive' %}
+                                    <span class="sentiment-badge-positive" title="VADER Score: {{ review.sentiment_score }}">
+                                        <i class="fa-regular fa-face-smile me-1"></i> Positive Sentiment
+                                    </span>
+                                {% elif review.sentiment_label == 'Negative' %}
+                                    <span class="sentiment-badge-negative" title="VADER Score: {{ review.sentiment_score }}">
+                                        <i class="fa-regular fa-face-frown me-1"></i> Negative Sentiment
+                                    </span>
+                                {% else %}
+                                    <span class="sentiment-badge-neutral" title="VADER Score: {{ review.sentiment_score }}">
+                                        <i class="fa-regular fa-face-meh me-1"></i> Neutral Sentiment
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0 text-light opacity-75">{{ review.review_text }}</p>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-regular fa-face-meh fs-2 mb-2"></i>
+                        <p class="mb-0">No reviews yet for this recipe. Be the first to add one!</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column: AI Predictions & Recommendations -->
+    <div class="col-lg-4">
+        <!-- AI Rating Prediction Card -->
+        <div class="glass-container p-4 mb-4">
+            <h3 class="h5 mb-3 text-light">AI Rating Prediction</h3>
+            <div class="prediction-box text-center">
+                <div class="small text-muted mb-2 text-uppercase fw-semibold tracking-wider">Estimated Quality Rating</div>
+                <div id="ai-rating-loading" class="py-3">
+                    <i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i>
+                    <p class="small text-muted mt-2 mb-0">Analyzing recipe macros...</p>
+                </div>
+                <div id="ai-rating-content" class="d-none">
+                    <div class="display-3 fw-bold text-white mb-2"><span id="predicted-rating-val">4.0</span></div>
+                    
+                    <div id="predicted-rating-stars" class="d-flex justify-content-center rating-stars text-warning fs-4 mb-3">
+                    </div>
+                    
+                    <div class="small text-muted">
+                        This rating is predicted using a <strong>LightGBM Classifier</strong> trained with 95.3% accuracy, evaluating this recipe's nutritional content, ingredient count, and preparation time.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendations Card -->
+        <div id="recommendations-card" class="glass-container p-4">
+            <h3 class="h5 mb-3 text-light">Recommended Recipes</h3>
+            <p class="small text-muted mb-4">Top matches computed in real-time using <strong>TF-IDF & Cosine Similarity</strong> features.</p>
+            
+            <div id="recs-loading" class="text-center py-4">
+                <i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i>
+                <p class="small text-muted mt-2 mb-0">Computing similarities...</p>
+            </div>
+            <div id="recs-container" class="d-flex flex-column gap-3 d-none">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const recipeId = "{{ recipe.recipe_id }}";
+    
+    // ── Dynamic Servings & Macro Auto-Scaling ──
+    const baseServings = parseFloat(document.getElementById('current-servings')?.getAttribute('data-base-servings')) || 1;
+    let currentServings = baseServings;
+    
+    function parseIngredient(text) {
+        // Matches standard numbers, decimals, fractions like 1/2, 1 1/2, 0.5 at the beginning of ingredients
+        const qtyRegex = /^([0-9]+(?:\.[0-9]+)?(?:\s+[0-9]+\/[0-9]+)?|[0-9]+\/[0-9]+)\s*(.*)$/;
+        const match = text.match(qtyRegex);
+        if (match) {
+            const qtyStr = match[1].trim();
+            const rest = match[2];
+            
+            let val = 0;
+            if (qtyStr.includes('/')) {
+                const parts = qtyStr.split(/\s+/);
+                if (parts.length === 2) {
+                    const whole = parseFloat(parts[0]);
+                    const fracParts = parts[1].split('/');
+                    val = whole + (parseFloat(fracParts[0]) / parseFloat(fracParts[1]));
+                } else {
+                    const fracParts = parts[0].split('/');
+                    val = parseFloat(fracParts[0]) / parseFloat(fracParts[1]);
+                }
+            } else {
+                val = parseFloat(qtyStr);
+            }
+            
+            if (!isNaN(val)) {
+                return { val: val, rest: rest, originalStr: qtyStr };
+            }
+        }
+        return null;
+    }
+    
+    function formatNumber(num) {
+        if (num % 1 === 0) return num.toString();
+        return parseFloat(num.toFixed(2)).toString();
+    }
+    
+    // Initialize Ingredient Quantity Spans
+    const ingredientSpans = document.querySelectorAll('.ingredient-item-text');
+    ingredientSpans.forEach(span => {
+        const text = span.textContent.trim();
+        const parsed = parseIngredient(text);
+        if (parsed) {
+            span.innerHTML = `<span class="qty-val" data-base-val="${parsed.val}">${formatNumber(parsed.val)}</span>${parsed.rest.startsWith(' ') ? '' : ' '}${parsed.rest}`;
+        }
+    });
+    
+    function updateDisplay() {
+        const factor = currentServings / baseServings;
+        
+        // Update servings display text
+        const currentServingsEl = document.getElementById('current-servings');
+        if (currentServingsEl) currentServingsEl.textContent = currentServings;
+        
+        // Update ingredient quantities
+        const qtyElements = document.querySelectorAll('.qty-val');
+        qtyElements.forEach(el => {
+            const baseVal = parseFloat(el.getAttribute('data-base-val'));
+            if (!isNaN(baseVal)) {
+                el.textContent = formatNumber(baseVal * factor);
+            }
+        });
+        
+        // Update nutrition values
+        const nutrMode = document.getElementById('nutr-mode-total')?.classList.contains('active') ? 'total' : 'serving';
+        
+        const calEl = document.getElementById('nutr-calories');
+        const protEl = document.getElementById('nutr-protein');
+        const fatEl = document.getElementById('nutr-fat');
+        const carbEl = document.getElementById('nutr-carbs');
+        
+        if (calEl && protEl && fatEl && carbEl) {
+            const baseCal = parseFloat(calEl.getAttribute('data-base-val')) || 0;
+            const baseProt = parseFloat(protEl.getAttribute('data-base-val')) || 0;
+            const baseFat = parseFloat(fatEl.getAttribute('data-base-val')) || 0;
+            const baseCarb = parseFloat(carbEl.getAttribute('data-base-val')) || 0;
+            
+            if (nutrMode === 'total') {
+                calEl.textContent = Math.round(baseCal * currentServings);
+                protEl.textContent = Math.round(baseProt * currentServings) + 'g';
+                fatEl.textContent = Math.round(baseFat * currentServings) + 'g';
+                carbEl.textContent = Math.round(baseCarb * currentServings) + 'g';
+                const label = document.getElementById('nutr-header-label');
+                if (label) label.textContent = 'Nutrition Information (Total Recipe)';
+            } else {
+                calEl.textContent = Math.round(baseCal);
+                protEl.textContent = Math.round(baseProt) + 'g';
+                fatEl.textContent = Math.round(baseFat) + 'g';
+                carbEl.textContent = Math.round(baseCarb) + 'g';
+                const label = document.getElementById('nutr-header-label');
+                if (label) label.textContent = 'Nutrition Information (per serving)';
+            }
+        }
+    }
+    
+    // Bind Servings Button Controls
+    document.getElementById('btn-dec-servings')?.addEventListener('click', function() {
+        if (currentServings > 1) {
+            currentServings -= 1;
+            updateDisplay();
+        }
+    });
+    
+    document.getElementById('btn-inc-servings')?.addEventListener('click', function() {
+        currentServings += 1;
+        updateDisplay();
+    });
+    
+    // Bind Nutrition Mode Toggles
+    const modeServingBtn = document.getElementById('nutr-mode-serving');
+    const modeTotalBtn = document.getElementById('nutr-mode-total');
+    
+    modeServingBtn?.addEventListener('click', function() {
+        modeServingBtn.classList.add('active');
+        modeTotalBtn.classList.remove('active');
+        updateDisplay();
+    });
+    
+    modeTotalBtn?.addEventListener('click', function() {
+        modeTotalBtn.classList.add('active');
+        modeServingBtn.classList.remove('active');
+        updateDisplay();
+    });
+
+    // 1. Fetch AI Rating Prediction
+    fetch(`/api/recipe/${recipeId}/prediction`)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            const loadingEl = document.getElementById('ai-rating-loading');
+            const contentEl = document.getElementById('ai-rating-content');
+            const valEl = document.getElementById('predicted-rating-val');
+            const starsEl = document.getElementById('predicted-rating-stars');
+            
+            if (data && data.predicted_rating !== undefined && data.predicted_rating !== null) {
+                const rating = parseInt(data.predicted_rating);
+                valEl.textContent = rating + '.0';
+                
+                let starsHtml = '';
+                for (let i = 0; i < rating; i++) {
+                    starsHtml += '<i class="fa-solid fa-star"></i> ';
+                }
+                for (let i = rating; i < 5; i++) {
+                    starsHtml += '<i class="fa-regular fa-star text-muted"></i> ';
+                }
+                starsEl.innerHTML = starsHtml;
+                
+                loadingEl.classList.add('d-none');
+                contentEl.classList.remove('d-none');
+            } else {
+                loadingEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warning fs-4 mb-2"></i><br><span class="text-warning fw-semibold">Pending Nutrition Data</span><p class="small text-muted mt-2 mb-0">Use the auto-calculate macros tool in Edit Recipe to run prediction analysis.</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching prediction:', err);
+            document.getElementById('ai-rating-loading').innerHTML = '<span class="text-danger">Failed to load prediction</span>';
+        });
+        
+    // 2. Fetch Recommended Recipes
+    fetch(`/api/recipe/${recipeId}/recommendations`)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            const loadingEl = document.getElementById('recs-loading');
+            const containerEl = document.getElementById('recs-container');
+            
+            if (data && data.length > 0) {
+                let html = '';
+                data.forEach(rec => {
+                    const detailUrl = `/recipe/${rec.recipe_id}`;
+                    html += `
+                        <div class="glass-container p-3 d-flex flex-column gap-2" style="background: rgba(255,255,255,0.015);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="category-tag" style="font-size: 0.65rem;">${rec.category || 'Lunch'}</span>
+                                <span class="similarity-badge" title="Cosine Similarity Score">
+                                    ${rec.similarity_score}% Match
+                                </span>
+                            </div>
+                            <h4 class="h6 mb-1 text-truncate">
+                                <a href="${detailUrl}" class="text-decoration-none text-light hover-indigo">
+                                    ${rec.recipe_name}
+                                </a>
+                            </h4>
+                            <div class="d-flex gap-3 small text-muted">
+                                    <span><i class="fa-regular fa-clock me-1"></i>${rec.cooking_time}m</span>
+                                    <span><i class="fa-solid fa-fire me-1"></i>${Math.round(rec.calories)} Cal</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                containerEl.innerHTML = html;
+                loadingEl.classList.add('d-none');
+                containerEl.classList.remove('d-none');
+            } else {
+                loadingEl.innerHTML = '<p class="mb-0 text-muted">No similar recipes available.</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching recommendations:', err);
+            document.getElementById('recs-loading').innerHTML = '<span class="text-danger">Failed to load recommendations</span>';
+        });
+});
+
+document.getElementById('favoriteBtn')?.addEventListener('click', function() {
+    const btn = this;
+    const recipeId = btn.getAttribute('data-recipe-id');
+    
+    fetch(`/favorite/${recipeId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.status === 401) {
+            window.location.href = "{{ url_for('login') }}?next=" + encodeURIComponent(window.location.pathname);
+            throw new Error('Unauthorized');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.favorite_status === 'added') {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="fa-solid fa-heart"></i>';
+        } else if (data && data.favorite_status === 'removed') {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+        }
+    })
+    .catch(err => console.error(err));
+});
+</script>
+{% endblock %}

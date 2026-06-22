@@ -1,0 +1,571 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-5 animated-fade-in">
+    <div class="col-lg-12">
+        <div class="glass-container p-4 p-md-5 text-center position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);">
+            <div class="position-absolute top-0 start-50 translate-middle-x" style="width: 300px; height: 300px; background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 75%); filter: blur(30px); pointer-events: none; z-index: 0;"></div>
+            <div class="position-relative" style="z-index: 1;">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill mb-3 uppercase tracking-wider small fw-bold">
+                    <i class="fa-solid fa-microchip me-1"></i> Machine Learning & NLP
+                </span>
+                <h1 class="display-5 mb-3">AI-Powered Food Recommendation & Rating Prediction</h1>
+                <p class="lead text-muted mx-auto col-md-9 mb-4">
+                    Discover recipes with dynamic TF-IDF content filtering, predict recipe ratings using a Random Forest model, and analyze community sentiment with VADER NLP analysis.
+                </p>
+                
+                <!-- Search Bar -->
+                <form action="{{ url_for('index') }}" method="GET" id="searchForm" class="col-lg-8 mx-auto mt-4">
+                    <!-- Keyword Search (Clean input row) -->
+                    <div class="input-group input-group-lg shadow-sm glass-container border-0 p-1 mb-3">
+                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" name="q" id="searchQ" value="{{ search_query }}" class="form-control bg-transparent border-0 text-light shadow-none fs-6 py-3" placeholder="Search recipes by name, ingredients, or keywords...">
+                        
+                        <!-- Preserve filters on keyword search -->
+                        <input type="hidden" name="cuisine" id="hiddenCuisine" value="{{ selected_cuisine }}">
+                        <input type="hidden" name="state_food" id="hiddenState" value="{{ selected_state }}">
+                        <input type="hidden" name="max_time" id="hiddenMaxTime" value="{{ selected_max_time or 120 }}">
+                        <input type="hidden" name="max_calories" id="hiddenMaxCalories" value="{{ selected_max_calories or 1500 }}">
+                        {% if selected_category %}
+                            <input type="hidden" name="category" value="{{ selected_category }}">
+                        {% endif %}
+                        <button class="btn btn-primary-gradient px-4 rounded-3 text-nowrap" type="submit">
+                            Search Recipe
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.filter-chip {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.45rem 1.1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    white-space: nowrap;
+}
+.filter-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.filter-chip.active {
+    background: var(--sys-primary-color, #3b82f6);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+    font-weight: 600;
+}
+.custom-range {
+    background: rgba(255, 255, 255, 0.06);
+    height: 6px;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+    width: 100%;
+}
+.custom-range::-webkit-slider-thumb {
+    background: var(--sys-primary-color, #3b82f6);
+    border: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    transition: transform 0.1s ease;
+    -webkit-appearance: none;
+}
+.custom-range::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+</style>
+<!-- Dedicated Filters Card (not in search bar) -->
+<div class="row mb-4 animated-fade-in">
+    <div class="col-lg-12">
+        <div class="glass-container p-4 border-secondary border-opacity-10 shadow-lg">
+            <h5 class="h6 text-muted mb-4 text-uppercase tracking-wider fw-bold">
+                <i class="fa-solid fa-filter text-primary me-2"></i> Filter & Customize Recommendations
+            </h5>
+            <form action="{{ url_for('index') }}" method="GET" id="filterForm">
+                <!-- Preserve keyword search query and category -->
+                <input type="hidden" name="q" id="hiddenQ" value="{{ search_query }}">
+                {% if selected_category %}
+                    <input type="hidden" name="category" value="{{ selected_category }}">
+                {% endif %}
+                
+                <!-- Hidden selects for backend bindings -->
+                <select name="cuisine" id="cuisineSelect" class="d-none">
+                    <option value="">All Cuisines</option>
+                    <option value="India" {% if selected_cuisine == 'India' or selected_cuisine == 'Indian' %}selected{% endif %}>🇮🇳 India</option>
+                    <option value="Italy" {% if selected_cuisine == 'Italy' or selected_cuisine == 'Italian' %}selected{% endif %}>🇮🇹 Italy</option>
+                    <option value="Mexico" {% if selected_cuisine == 'Mexico' or selected_cuisine == 'Mexican' %}selected{% endif %}>🇲🇽 Mexico</option>
+                    <option value="China" {% if selected_cuisine == 'China' or selected_cuisine == 'Chinese' %}selected{% endif %}>🇨🇳 China</option>
+                    <option value="America" {% if selected_cuisine == 'America' or selected_cuisine == 'American' %}selected{% endif %}>🇺🇸 United States</option>
+                    <option value="France" {% if selected_cuisine == 'France' or selected_cuisine == 'French' %}selected{% endif %}>🇫🇷 France</option>
+                    <option value="Thailand" {% if selected_cuisine == 'Thailand' or selected_cuisine == 'Thai' %}selected{% endif %}>🇹🇭 Thailand</option>
+                    <option value="Japan" {% if selected_cuisine == 'Japan' or selected_cuisine == 'Japanese' %}selected{% endif %}>🇯🇵 Japan</option>
+                </select>
+                <select name="state_food" id="stateSelect" class="d-none">
+                    <option value="">All Regions</option>
+                </select>
+
+                <!-- Dynamic Chips Controls Row -->
+                <div class="row g-4 mb-3">
+                    <div class="col-12">
+                        <label class="form-label text-muted small fw-semibold text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.05em;">Cuisine (Country)</label>
+                        <div class="d-flex flex-wrap gap-2" id="cuisineChipsContainer">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                    <div class="col-12" id="regionFilterGroup" style="display: none;">
+                        <label class="form-label text-muted small fw-semibold text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.05em;">Region (State Food)</label>
+                        <div class="d-flex flex-wrap gap-2" id="stateChipsContainer">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Range Sliders Row -->
+                <div class="row g-4 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label text-muted small fw-semibold text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Max Cooking Time</span>
+                            <span id="timeVal" class="text-primary fw-bold">{% if selected_max_time and selected_max_time < 120 %}{{ selected_max_time }} mins{% else %}Any Time{% endif %}</span>
+                        </label>
+                        <input type="range" name="max_time" id="maxTimeSlider" min="10" max="120" step="5" value="{{ selected_max_time or 120 }}" class="custom-range">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label text-muted small fw-semibold text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Max Calories</span>
+                            <span id="calVal" class="text-primary fw-bold">{% if selected_max_calories and selected_max_calories < 1500 %}{{ selected_max_calories }} Cal{% else %}Any Calories{% endif %}</span>
+                        </label>
+                        <input type="range" name="max_calories" id="maxCaloriesSlider" min="100" max="1500" step="50" value="{{ selected_max_calories or 1500 }}" class="custom-range">
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button class="btn btn-primary-gradient w-100 py-2 text-nowrap" type="submit">
+                            Apply Filters
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-glass py-2 px-3 text-light d-flex align-items-center justify-content-center" style="border-radius: 10px;" title="Reset Filters">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Category Filters & Stats Summary -->
+<div class="row mb-4 align-items-center gap-3 gap-md-0 animated-fade-in">
+    <div class="col-md-9">
+        <div class="category-filter-bar">
+            <a href="{{ url_for('index', q=search_query, cuisine=selected_cuisine, state_food=selected_state) }}" class="category-filter-btn {% if not selected_category %}active{% endif %}">
+                All Recipes
+            </a>
+            {% for cat in categories %}
+                <a href="{{ url_for('index', q=search_query, category=cat, cuisine=selected_cuisine, state_food=selected_state) }}" class="category-filter-btn {% if selected_category == cat %}active{% endif %}">
+                    {{ cat }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-3 text-md-end">
+        <span class="text-muted small">
+            Found <strong>{{ recipes|length }}</strong> delicious recipes
+        </span>
+    </div>
+</div>
+
+<!-- Recipe Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 animated-fade-in">
+    {% for recipe in recipes %}
+        <div class="col" id="recipe-{{ recipe.recipe_id }}">
+            <div class="recipe-card">
+                <!-- Heart / Favorite Button -->
+                {% set is_fav = recipe.recipe_id in user_favorites %}
+                <button class="card-favorite-btn {% if is_fav %}active{% endif %}" data-recipe-id="{{ recipe.recipe_id }}" title="Toggle Favorite">
+                    <i class="{% if is_fav %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                </button>
+                
+                <div class="recipe-card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="category-tag">{{ recipe.category or "Dinner" }}</span>
+                        <!-- Stars rating -->
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rating-stars">
+                                {% set stars = recipe.avg_rating|round|int %}
+                                {% for _ in range(stars) %}
+                                    <i class="fa-solid fa-star"></i>
+                                {% endfor %}
+                                {% for _ in range(5 - stars) %}
+                                    <i class="fa-regular fa-star text-muted"></i>
+                                {% endfor %}
+                            </span>
+                            <span class="small text-muted">({{ recipe.review_count }})</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="h5 mb-2 text-truncate-2" style="line-height: 1.4;">
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.recipe_id, q=search_query, category=selected_category, page=page, cuisine=selected_cuisine, state_food=selected_state) }}" class="text-decoration-none text-light hover-indigo">
+                            {{ recipe.recipe_name }}
+                        </a>
+                    </h3>
+                    
+                    <p class="text-muted small flex-grow-1 text-truncate-3 mb-4">
+                        {{ recipe.description or "A flavor-packed recipe prepared with fresh ingredients and traditional cooking methods." }}
+                    </p>
+                    
+                    <!-- Metrics Row -->
+                    <div class="d-flex gap-2 mb-4">
+                        <div class="metric-pill">
+                            <i class="fa-regular fa-clock"></i>
+                            <span>{{ recipe.cooking_time }} Min</span>
+                        </div>
+                        <div class="metric-pill">
+                            <i class="fa-solid fa-fire text-danger"></i>
+                            <span>{{ recipe.calories|int }} Cal</span>
+                        </div>
+                        <div class="metric-pill ms-auto">
+                            <i class="fa-regular fa-eye text-primary"></i>
+                            <span>{{ recipe.views }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.recipe_id, q=search_query, category=selected_category, page=page, cuisine=selected_cuisine, state_food=selected_state) }}" class="btn btn-outline-glass btn-sm w-100 py-2">
+                            View Details <i class="fa-solid fa-arrow-right ms-1 small"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12 py-5 text-center">
+            <div class="glass-container p-5 col-md-6 mx-auto">
+                <i class="fa-solid fa-circle-question text-muted fs-1 mb-3"></i>
+                <h3 class="h4">No recipes found</h3>
+                <p class="text-muted mb-0">Try searching for other ingredients or categories, or add a new recipe to GourmetAI.</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="row mt-5 animated-fade-in">
+    <div class="col-lg-12 d-flex justify-content-center">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center gap-1">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link btn-outline-glass border-secondary border-opacity-10 text-muted" href="{{ url_for('index', page=page-1, q=search_query, category=selected_category, cuisine=selected_cuisine, state_food=selected_state) }}" tabindex="-1">
+                        <i class="fa-solid fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+                
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                        <li class="page-item {% if page == p %}active{% endif %}">
+                            <a class="page-link {% if page == p %}btn-primary-gradient border-0 text-white{% else %}btn-outline-glass border-secondary border-opacity-10 text-muted{% endif %}" href="{{ url_for('index', page=p, q=search_query, category=selected_category, cuisine=selected_cuisine, state_food=selected_state) }}">{{ p }}</a>
+                        </li>
+                    {% elif p == page - 3 or p == page + 3 %}
+                        <li class="page-item disabled"><span class="page-link btn-outline-glass border-0 text-muted opacity-50">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link btn-outline-glass border-secondary border-opacity-10 text-muted" href="{{ url_for('index', page=page+1, q=search_query, category=selected_category, cuisine=selected_cuisine, state_food=selected_state) }}">
+                        Next <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const cuisineRegions = {
+        'India': [
+            { value: 'Tamil Nadu', text: '🍛 Tamil Nadu' },
+            { value: 'Kerala', text: '🌴 Kerala' },
+            { value: 'Punjabi', text: '🌾 Punjabi' }
+        ],
+        'Indian': [
+            { value: 'Tamil Nadu', text: '🍛 Tamil Nadu' },
+            { value: 'Kerala', text: '🌴 Kerala' },
+            { value: 'Punjabi', text: '🌾 Punjabi' }
+        ],
+        'Italy': [
+            { value: 'Tuscan', text: '🍷 Tuscan' }
+        ],
+        'Italian': [
+            { value: 'Tuscan', text: '🍷 Tuscan' }
+        ],
+        'China': [
+            { value: 'Sichuan', text: '🌶️ Sichuan' }
+        ],
+        'Chinese': [
+            { value: 'Sichuan', text: '🌶️ Sichuan' }
+        ],
+        'America': [
+            { value: 'Texan', text: '🤠 Texan' }
+        ],
+        'American': [
+            { value: 'Texan', text: '🤠 Texan' }
+        ],
+        'United States': [
+            { value: 'Texan', text: '🤠 Texan' }
+        ]
+    };
+
+    const queryToCuisine = {
+        'india': 'India',
+        'indian': 'India',
+        'italy': 'Italy',
+        'italian': 'Italy',
+        'mexico': 'Mexico',
+        'mexican': 'Mexico',
+        'china': 'China',
+        'chinese': 'China',
+        'america': 'America',
+        'american': 'America',
+        'united states': 'America',
+        'us': 'America',
+        'usa': 'America',
+        'france': 'France',
+        'french': 'France',
+        'thailand': 'Thailand',
+        'thai': 'Thailand',
+        'japan': 'Japan',
+        'japanese': 'Japan'
+    };
+
+    const cuisinesList = [
+        { value: '', text: '🌎 All Cuisines' },
+        { value: 'India', text: '🇮🇳 India' },
+        { value: 'Italy', text: '🇮🇹 Italy' },
+        { value: 'Mexico', text: '🇲🇽 Mexico' },
+        { value: 'China', text: '🇨🇳 China' },
+        { value: 'America', text: '🇺🇸 United States' },
+        { value: 'France', text: '🇫🇷 France' },
+        { value: 'Thailand', text: '🇹🇭 Thailand' },
+        { value: 'Japan', text: '🇯🇵 Japan' }
+    ];
+
+    const cuisineSelect = document.getElementById('cuisineSelect');
+    const stateSelect = document.getElementById('stateSelect');
+    const searchQ = document.getElementById('searchQ');
+    const initialSelectedState = "{{ selected_state }}";
+
+    function updateRegions() {
+        const selectedCuisine = cuisineSelect.value;
+        
+        stateSelect.innerHTML = '<option value="">All Regions</option>';
+        
+        if (selectedCuisine && cuisineRegions[selectedCuisine]) {
+            cuisineRegions[selectedCuisine].forEach(region => {
+                const opt = document.createElement('option');
+                opt.value = region.value;
+                opt.textContent = region.text;
+                if (region.value === initialSelectedState) {
+                    opt.selected = true;
+                }
+                stateSelect.appendChild(opt);
+            });
+        } else if (!selectedCuisine) {
+            const allRegions = [
+                { value: 'Tamil Nadu', text: '🍛 Tamil Nadu' },
+                { value: 'Kerala', text: '🌴 Kerala' },
+                { value: 'Punjabi', text: '🌾 Punjabi' },
+                { value: 'Tuscan', text: '🍷 Tuscan' },
+                { value: 'Sichuan', text: '🌶️ Sichuan' },
+                { value: 'Texan', text: '🤠 Texan' }
+            ];
+            allRegions.forEach(region => {
+                const opt = document.createElement('option');
+                opt.value = region.value;
+                opt.textContent = region.text;
+                if (region.value === initialSelectedState) {
+                    opt.selected = true;
+                }
+                stateSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function renderCuisineChips() {
+        const container = document.getElementById('cuisineChipsContainer');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        const activeVal = cuisineSelect.value;
+        
+        cuisinesList.forEach(c => {
+            const chip = document.createElement('div');
+            chip.className = `filter-chip ${activeVal === c.value ? 'active' : ''}`;
+            chip.textContent = c.text;
+            chip.addEventListener('click', () => {
+                cuisineSelect.value = c.value;
+                updateRegions();
+                renderCuisineChips();
+                renderStateChips();
+            });
+            container.appendChild(chip);
+        });
+    }
+
+    function renderStateChips() {
+        const container = document.getElementById('stateChipsContainer');
+        const group = document.getElementById('regionFilterGroup');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const options = Array.from(stateSelect.options);
+        if (options.length <= 1) {
+            group.style.display = 'none';
+            stateSelect.value = '';
+            return;
+        } else {
+            group.style.display = 'block';
+        }
+        
+        options.forEach(opt => {
+            const chip = document.createElement('div');
+            const isAll = opt.value === '';
+            const activeVal = stateSelect.value;
+            chip.className = `filter-chip ${activeVal === opt.value ? 'active' : ''}`;
+            chip.textContent = isAll ? '📍 All Regions' : opt.textContent;
+            chip.addEventListener('click', () => {
+                stateSelect.value = opt.value;
+                renderStateChips();
+            });
+            container.appendChild(chip);
+        });
+    }
+
+    function detectCuisineFromSearch() {
+        if (!searchQ) return;
+        const qVal = searchQ.value.toLowerCase().trim();
+        for (const [key, cuisine] of Object.entries(queryToCuisine)) {
+            if (qVal.includes(key)) {
+                if (cuisineSelect.value !== cuisine) {
+                    cuisineSelect.value = cuisine;
+                    updateRegions();
+                    renderCuisineChips();
+                    renderStateChips();
+                }
+                break;
+            }
+        }
+    }
+
+    // Sliders listeners
+    const timeSlider = document.getElementById('maxTimeSlider');
+    const timeVal = document.getElementById('timeVal');
+    if (timeSlider && timeVal) {
+        timeSlider.addEventListener('input', function() {
+            const val = parseInt(timeSlider.value);
+            timeVal.textContent = val === 120 ? 'Any Time' : `${val} mins`;
+        });
+    }
+
+    const caloriesSlider = document.getElementById('maxCaloriesSlider');
+    const calVal = document.getElementById('calVal');
+    if (caloriesSlider && calVal) {
+        caloriesSlider.addEventListener('input', function() {
+            const val = parseInt(caloriesSlider.value);
+            calVal.textContent = val === 1500 ? 'Any Calories' : `${val} Cal`;
+        });
+    }
+
+    // Initialize listeners and UI
+    if (cuisineSelect && stateSelect) {
+        cuisineSelect.addEventListener('change', () => {
+            updateRegions();
+            renderCuisineChips();
+            renderStateChips();
+        });
+        updateRegions();
+        renderCuisineChips();
+        renderStateChips();
+    }
+
+    if (searchQ) {
+        searchQ.addEventListener('input', detectCuisineFromSearch);
+        detectCuisineFromSearch(); // Run on initial page load
+    }
+
+    // Synchronize form submissions
+    const searchForm = document.getElementById('searchForm');
+    const filterForm = document.getElementById('filterForm');
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', function() {
+            const hc = document.getElementById('hiddenCuisine');
+            const hs = document.getElementById('hiddenState');
+            const ht = document.getElementById('hiddenMaxTime');
+            const hca = document.getElementById('hiddenMaxCalories');
+            if (hc) hc.value = cuisineSelect ? cuisineSelect.value : '';
+            if (hs) hs.value = stateSelect ? stateSelect.value : '';
+            if (ht) ht.value = timeSlider ? timeSlider.value : '120';
+            if (hca) hca.value = caloriesSlider ? caloriesSlider.value : '1500';
+        });
+    }
+
+    if (filterForm) {
+        filterForm.addEventListener('submit', function() {
+            const hq = document.getElementById('hiddenQ');
+            if (hq) hq.value = searchQ ? searchQ.value : '';
+        });
+    }
+
+    // Card Favorite Click Delegation
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.card-favorite-btn');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const recipeId = btn.getAttribute('data-recipe-id');
+        fetch(`/favorite/${recipeId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = "{{ url_for('login') }}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+                throw new Error('Unauthorized');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.favorite_status === 'added') {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fa-solid fa-heart"></i>';
+            } else if (data && data.favorite_status === 'removed') {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+            }
+        })
+        .catch(err => console.error(err));
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center animated-fade-in">
+    <div class="col-lg-8 col-md-10">
+        <div class="glass-container p-4 p-md-5">
+            <div class="mb-4">
+                <h2 class="mb-1"><i class="fa-solid fa-sliders text-primary me-2"></i>System & User Settings</h2>
+                <p class="text-muted">Configure preferences and toggle machine learning layouts.</p>
+            </div>
+            
+            <form action="{{ url_for('settings') }}" method="POST">
+                <!-- User Preferences Section -->
+                <div class="mb-5">
+                    <h3 class="h5 mb-3 text-light"><i class="fa-regular fa-user text-muted me-2"></i>User Interface Preferences</h3>
+                    <div class="glass-container p-3 p-md-4" style="background: rgba(255,255,255,0.015);">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showPredictions" checked>
+                            <label class="form-check-label text-light fw-medium" for="showPredictions">Show AI Predicted Ratings on Recipe Cards</label>
+                            <div class="form-text text-muted small">Show the Random Forest predicted score on list views before opening the details page.</div>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showGlows" checked>
+                            <label class="form-check-label text-light fw-medium" for="showGlows">Enable Glowing Card Transitions</label>
+                            <div class="form-text text-muted small">Toggles glowing neon borders and shadows during card hover animations.</div>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="chatPopups" checked>
+                            <label class="form-check-label text-light fw-medium" for="chatPopups">Auto-expand GourmetBot AI Help</label>
+                            <div class="form-text text-muted small">Expand the chatbot greeting popups automatically upon visiting detail pages.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Admin Theme Customization Section -->
+                {% if is_admin %}
+                <div class="mb-5 border-top border-secondary border-opacity-10 pt-4">
+                    <h3 class="h5 mb-1 text-light"><i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i>Admin Theme Panel</h3>
+                    <p class="text-muted small mb-3">Change the system color parameters and background gradients instantly.</p>
+                    
+                    <div class="glass-container p-3 p-md-4" style="background: rgba(255,255,255,0.015);">
+                        <!-- Theme Presets Selection -->
+                        <label class="form-label text-muted small fw-semibold text-uppercase mb-3">Select Color Preset Theme</label>
+                        <div class="row g-3 mb-4">
+                            <!-- Preset 1: Midnight -->
+                            <div class="col-md-6">
+                                <div class="form-check p-0">
+                                    <input type="radio" class="btn-check" name="preset" id="presetMidnight" value="midnight" {% if sys_settings.theme_preset == 'midnight' %}checked{% endif %}>
+                                    <label class="btn btn-outline-glass w-100 text-start p-3 d-flex flex-column gap-1" for="presetMidnight">
+                                        <span class="fw-bold text-light d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-moon text-indigo"></i> Midnight Cosmic
+                                        </span>
+                                        <span class="small text-muted">Electric indigo, violet & pink details on dark purple obsidian.</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Preset 2: Emerald -->
+                            <div class="col-md-6">
+                                <div class="form-check p-0">
+                                    <input type="radio" class="btn-check" name="preset" id="presetEmerald" value="emerald" {% if sys_settings.theme_preset == 'emerald' %}checked{% endif %}>
+                                    <label class="btn btn-outline-glass w-100 text-start p-3 d-flex flex-column gap-1" for="presetEmerald">
+                                        <span class="fw-bold text-light d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-tree text-success"></i> Forest Emerald
+                                        </span>
+                                        <span class="small text-muted">Deep teal, emerald & lime details on rich dark-green background.</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Preset 3: Sunset -->
+                            <div class="col-md-6">
+                                <div class="form-check p-0">
+                                    <input type="radio" class="btn-check" name="preset" id="presetSunset" value="sunset" {% if sys_settings.theme_preset == 'sunset' %}checked{% endif %}>
+                                    <label class="btn btn-outline-glass w-100 text-start p-3 d-flex flex-column gap-1" for="presetSunset">
+                                        <span class="fw-bold text-light d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-fire text-danger"></i> Crimson Sunset
+                                        </span>
+                                        <span class="small text-muted">Vibrant orange, crimson & rose details on warm burgundy slate.</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Preset 4: Slate -->
+                            <div class="col-md-6">
+                                <div class="form-check p-0">
+                                    <input type="radio" class="btn-check" name="preset" id="presetSlate" value="slate" {% if sys_settings.theme_preset == 'slate' %}checked{% endif %}>
+                                    <label class="btn btn-outline-glass w-100 text-start p-3 d-flex flex-column gap-1" for="presetSlate">
+                                        <span class="fw-bold text-light d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-circle-nodes text-primary"></i> Classic Slate
+                                        </span>
+                                        <span class="small text-muted">Sleek royal blue, sky blue & graphite details on midnight blue slate.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Color Picker Selection -->
+                        <div class="border-top border-secondary border-opacity-10 pt-4 mt-3">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="preset" id="presetCustom" value="custom" {% if sys_settings.theme_preset == 'custom' %}checked{% endif %}>
+                                <label class="form-check-label text-light fw-semibold" for="presetCustom">
+                                    Use Custom Colors
+                                </label>
+                                <div class="form-text text-muted small">Select your own primary and accent values. Background defaults to neutral slate.</div>
+                            </div>
+                            
+                            <div class="row g-3" id="customColorSelectors">
+                                <div class="col-6">
+                                    <label for="primary_color" class="form-label text-muted small">Primary Color</label>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="color" class="form-control form-control-color border-0 bg-transparent p-0" id="primary_color" name="primary_color" value="{{ sys_settings.primary_color }}" style="width: 44px; height: 44px; cursor: pointer;">
+                                        <span class="text-muted small fw-mono" id="primaryHex">{{ sys_settings.primary_color }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <label for="accent_color" class="form-label text-muted small">Accent Color</label>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="color" class="form-control form-control-color border-0 bg-transparent p-0" id="accent_color" name="accent_color" value="{{ sys_settings.accent_color }}" style="width: 44px; height: 44px; cursor: pointer;">
+                                        <span class="text-muted small fw-mono" id="accentHex">{{ sys_settings.accent_color }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Save Buttons -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary-gradient py-2">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save All Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Live update color pickers text indicators
+    const primaryInput = document.getElementById('primary_color');
+    const primaryHex = document.getElementById('primaryHex');
+    const accentInput = document.getElementById('accent_color');
+    const accentHex = document.getElementById('accentHex');
+    const presetCustom = document.getElementById('presetCustom');
+
+    primaryInput?.addEventListener('input', (e) => {
+        if(primaryHex) primaryHex.textContent = e.target.value;
+        if(presetCustom) presetCustom.checked = true;
+    });
+    
+    accentInput?.addEventListener('input', (e) => {
+        if(accentHex) accentHex.textContent = e.target.value;
+        if(presetCustom) presetCustom.checked = true;
+    });
+</script>
+{% endblock %}

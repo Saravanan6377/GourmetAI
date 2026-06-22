@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Food Recommendation & Rating Predictor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, {{ sys_settings.primary_color }} 0%, {{ sys_settings.primary_color_alt }} 100%);
+            --accent-gradient: linear-gradient(135deg, {{ sys_settings.accent_color }} 0%, {{ sys_settings.accent_color_alt }} 100%);
+            --bg-gradient: {{ sys_settings.gradient_bg }} !important;
+            --btn-hover-gradient: linear-gradient(135deg, {{ sys_settings.primary_color_alt }} 0%, {{ sys_settings.accent_color }} 100%);
+            --card-hover-border: rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+                <i class="fa-solid fa-brain-circuit text-primary-gradient"></i>
+                <span>GourmetAI</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="fa-solid fa-utensils me-1"></i> Recipes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/analytics' %}active{% endif %}"
+                            href="{{ url_for('analytics') }}">
+                            <i class="fa-solid fa-chart-line me-1"></i> Analytics
+                        </a>
+                    </li>
+                    {% if session.user_id %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/favorites' %}active{% endif %}"
+                            href="{{ url_for('favorites') }}">
+                            <i class="fa-solid fa-heart me-1"></i> Favorites
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/recipe/add' %}active{% endif %}"
+                            href="{{ url_for('add_recipe') }}">
+                            <i class="fa-solid fa-plus-circle me-1"></i> Add Recipe
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/settings' %}active{% endif %}"
+                            href="{{ url_for('settings') }}">
+                            <i class="fa-solid fa-gear me-1"></i> Settings
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    {% if session.user_id %}
+                    <span class="text-light d-none d-md-inline-block">
+                        <i class="fa-regular fa-user text-muted me-1"></i> Welcome, <strong>{{ session.user_name
+                            }}</strong>
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-glass btn-sm">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-glass btn-sm">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary-gradient btn-sm">
+                        <i class="fa-solid fa-user-plus me-1"></i> Register
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} glass-container border-0 text-light d-flex align-items-center justify-content-between animated-fade-in mb-4"
+                    role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if category == 'success' %}
+                        <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                        {% elif category == 'danger' or category == 'error' %}
+                        <i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i>
+                        {% else %}
+                        <i class="fa-solid fa-circle-info text-info fs-5"></i>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="py-4 mt-auto border-top border-secondary border-opacity-10 text-center text-muted"
+        style="background: rgba(15, 23, 42, 0.4);">
+        <div class="container">
+            <p class="mb-1 text-light opacity-75">AI-Powered Food Recommendation & Rating Prediction System</p>
+            <p class="small mb-0">&copy; 2026 GourmetAI. Final Year Project Expo.</p>
+        </div>
+    </footer>
+
+    <button class="chatbot-toggler" id="chatToggler" title="GourmetAI Chat Assistant">
+        <i class="fa-solid fa-comments"></i>
+    </button>
+
+    <div class="chatbot-window" id="chatWindow">
+        <div class="chat-header">
+            <h4><i class="fa-solid fa-robot text-primary-gradient"></i> GourmetBot</h4>
+            <button class="chat-close-btn" id="chatClose"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="chat-msg chat-msg-bot">
+                Hello! I am <strong>GourmetBot</strong>, your AI culinary assistant. Ask me questions like:
+                <ul>
+                    <li>"Suggest healthy breakfast recipes"</li>
+                    <li>"Recommend high protein dinner options"</li>
+                    <li>"Find chocolate desserts"</li>
+                </ul>
+            </div>
+        </div>
+        <!-- Quick suggestions -->
+        <div class="chat-quick-actions px-3 pb-2 d-flex flex-wrap gap-1" style="background: rgba(15, 23, 42, 0.15); border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;">
+            <button class="btn btn-outline-glass btn-xs quick-action-btn" data-query="Suggest healthy breakfast" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 12px;">🍳 Breakfast</button>
+            <button class="btn btn-outline-glass btn-xs quick-action-btn" data-query="Recommend high protein dinner" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 12px;">🥩 Dinner</button>
+            <button class="btn btn-outline-glass btn-xs quick-action-btn" data-query="Suggest Indian cuisine" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 12px;">🇮🇳 Indian</button>
+            <button class="btn btn-outline-glass btn-xs quick-action-btn" data-query="Suggest Tamil Nadu food" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 12px;">🍛 Tamil Nadu</button>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Ask GourmetBot...">
+            <button class="chat-send-btn" id="chatSend"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const chatToggler = document.getElementById('chatToggler');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatClose = document.getElementById('chatClose');
+        const chatSend = document.getElementById('chatSend');
+        const chatInput = document.getElementById('chatInput');
+        const chatBody = document.getElementById('chatBody');
+
+        chatToggler?.addEventListener('click', () => {
+            chatWindow?.classList.toggle('active');
+            chatInput?.focus();
+        });
+
+        chatClose?.addEventListener('click', () => {
+            chatWindow?.classList.remove('active');
+        });
+
+        // Quick Suggestion Actions Handler
+        document.querySelectorAll('.quick-action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const query = this.getAttribute('data-query');
+                if (chatInput) {
+                    chatInput.value = query;
+                    sendMessage();
+                }
+            });
+        });
+
+        function appendMessage(text, isUser = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-msg ${isUser ? 'chat-msg-user' : 'chat-msg-bot'}`;
+            msgDiv.innerHTML = text;
+            chatBody?.appendChild(msgDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function sendMessage() {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            appendMessage(query, true);
+            chatInput.value = '';
+
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'chat-msg chat-msg-bot';
+            thinkingDiv.innerHTML = '<i class="fa-solid fa-ellipsis fa-bounce me-1"></i> Searching recipe database...';
+            chatBody.appendChild(thinkingDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            fetch('/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: query })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    thinkingDiv.remove();
+                    appendMessage(data.response || "Sorry, I couldn't process your query.");
+                })
+                .catch(err => {
+                    thinkingDiv.remove();
+                    appendMessage("Sorry, I am facing connectivity issues. Please try again later.");
+                    console.error(err);
+                });
+        }
+
+        chatSend?.addEventListener('click', sendMessage);
+        chatInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

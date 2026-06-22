@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4 align-items-center animated-fade-in">
+    <div class="col-md-8">
+        <h2 class="mb-1"><i class="fa-solid fa-heart text-danger me-2"></i>My Favorite Recipes</h2>
+        <p class="text-muted">Your bookmarked recipes. Click view details to see AI ratings, recommendations, and reviews.</p>
+    </div>
+</div>
+
+<!-- Recipe Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 animated-fade-in">
+    {% for recipe in recipes %}
+        <div class="col">
+            <div class="recipe-card">
+                <!-- Heart / Favorite Button (always active on favorites page) -->
+                <button class="card-favorite-btn active" data-recipe-id="{{ recipe.recipe_id }}" title="Toggle Favorite">
+                    <i class="fa-solid fa-heart"></i>
+                </button>
+                
+                <div class="recipe-card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="category-tag">{{ recipe.category or "Dinner" }}</span>
+                        <!-- Stars rating -->
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rating-stars">
+                                {% set stars = recipe.avg_rating|round|int %}
+                                {% for _ in range(stars) %}
+                                    <i class="fa-solid fa-star"></i>
+                                {% endfor %}
+                                {% for _ in range(5 - stars) %}
+                                    <i class="fa-regular fa-star text-muted"></i>
+                                {% endfor %}
+                            </span>
+                            <span class="small text-muted">({{ recipe.review_count }})</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="h5 mb-2 text-truncate-2" style="line-height: 1.4;">
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.recipe_id) }}" class="text-decoration-none text-light hover-indigo">
+                            {{ recipe.recipe_name }}
+                        </a>
+                    </h3>
+                    
+                    <p class="text-muted small flex-grow-1 text-truncate-3 mb-4">
+                        {{ recipe.description or "A delicious homecooked dish." }}
+                    </p>
+                    
+                    <!-- Metrics Row -->
+                    <div class="d-flex gap-2 mb-4">
+                        <div class="metric-pill">
+                            <i class="fa-regular fa-clock"></i>
+                            <span>{{ recipe.cooking_time }} Min</span>
+                        </div>
+                        <div class="metric-pill">
+                            <i class="fa-solid fa-fire text-danger"></i>
+                            <span>{{ recipe.calories|int }} Cal</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.recipe_id) }}" class="btn btn-outline-glass btn-sm w-100 py-2">
+                            View Details <i class="fa-solid fa-arrow-right ms-1 small"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12 py-5 text-center">
+            <div class="glass-container p-5 col-md-6 mx-auto">
+                <i class="fa-solid fa-heart-broken text-muted fs-1 mb-3"></i>
+                <h3 class="h4">No favorites saved yet</h3>
+                <p class="text-muted mb-4">Browse recipes and click the heart icon on any recipe detail page to add it to your collection.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary-gradient">Browse Recipes</a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Card Favorite Click Delegation on Favorites Page
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.card-favorite-btn');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const recipeId = btn.getAttribute('data-recipe-id');
+        fetch(`/favorite/${recipeId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = "{{ url_for('login') }}?next=" + encodeURIComponent(window.location.pathname);
+                throw new Error('Unauthorized');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.favorite_status === 'removed') {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+                
+                // Animate card removal
+                const cardCol = btn.closest('.col');
+                if (cardCol) {
+                    cardCol.style.transition = 'all 0.3s ease';
+                    cardCol.style.opacity = '0';
+                    cardCol.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        cardCol.remove();
+                        // If no favorites left, reload page to show empty state template
+                        const grid = document.querySelector('.row-cols-1');
+                        if (grid && grid.querySelectorAll('.col').length === 0) {
+                            window.location.reload();
+                        }
+                    }, 300);
+                }
+            }
+        })
+        .catch(err => console.error(err));
+    });
+</script>
+{% endblock %}
